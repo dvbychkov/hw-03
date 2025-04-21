@@ -1,0 +1,31 @@
+---
+- name: Test infrastructure connectivity and secrets
+  hosts: all
+  gather_facts: false
+  vars:
+    ansible_user: ubuntu
+  become: yes
+
+  pre_tasks:
+    - name: Validate SSH connectivity
+      wait_for:
+        host: "{{ ansible_host }}"
+        port: 22
+        timeout: 300
+      delegate_to: localhost
+
+  tasks:
+    - name: Test basic ping connectivity
+      ansible.builtin.ping:
+
+    - name: Save host-specific secret
+      ansible.builtin.copy:
+        dest: /tmp/own.pass
+        content: "{{ secrets[inventory_hostname] | default('undefined') }}"
+      when: secrets[inventory_hostname] is defined
+
+    - name: Save all secrets archive
+      ansible.builtin.copy:
+        dest: /tmp/all.pass
+        content: "{{ secrets | to_nice_json }}"
+      when: secrets is defined
